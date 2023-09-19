@@ -1,6 +1,6 @@
 import torch
 import torch_xla
-from torch_xla.experimental.quantized import xla_quantize_per_tensor, xla_dequantize_per_tensor
+from torch_xla.experimental.quantized import xla_quantize_per_channel, xla_dequantize_per_channel
 from torch_xla.core import xla_model as xm
 
 device = xm.xla_device()
@@ -28,23 +28,13 @@ x = torch.rand((2, 5)).to(device)
 y = torch.rand((2, 5)).to(device)
 
 add = x + y
-q_add = xla_quantize_per_tensor(
-    add,
-    torch.tensor([1.0, 2.0]),
-    torch.tensor([1, 1]),
-    -128,
-    127,
-    str(torch.int8),
-    axis=0)
+q_add = xla_quantize_per_channel(add, torch.tensor([1.0, 2.0]),
+                                 torch.tensor([1, 1]), 0, -128, 127,
+                                 str(torch.int8))
 
-dq_add = xla_dequantize_per_tensor(
-    q_add,
-    torch.tensor([1.0, 2.0]),
-    torch.tensor([1, 1]),
-    -128,
-    127,
-    str(torch.int8),
-    axis=0)
+dq_add = xla_dequantize_per_channel(q_add, torch.tensor([1.0, 2.0]),
+                                    torch.tensor([1, 1]), 0, -128, 127,
+                                    str(torch.int8))
 
 hlo = torch_xla._XLAC._get_xla_tensors_hlo([dq_add])
 print(hlo)
