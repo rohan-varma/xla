@@ -11,15 +11,15 @@ index f74973ae1..8e3f0e06b 100644
          "@llvm-project//mlir:SparseTensorDialect",
          "@tsl//tsl/platform:statusor",
 diff --git a/xla/translate/hlo_to_mhlo/hlo_function_importer.cc b/xla/translate/hlo_to_mhlo/hlo_function_importer.cc
-index 08d5f49c8..5ca2f9527 100644
+index 08d5f49c8..2f9ad1e0b 100644
 --- a/xla/translate/hlo_to_mhlo/hlo_function_importer.cc
 +++ b/xla/translate/hlo_to_mhlo/hlo_function_importer.cc
-@@ -664,6 +664,64 @@ StatusOr<mlir::Operation*> HloFunctionImporter::ImportInstruction(
+@@ -664,6 +664,70 @@ StatusOr<mlir::Operation*> HloFunctionImporter::ImportInstruction(
    return importer.ImportInstructionWithLayout(instr, operands, builder, mode);
  }
  
 +Type getQuantizedType(mlir::DictionaryAttr& backend_config) {
-+  std::vector<float> scales;
++  std::vector<double> scales;
 +  std::vector<int64_t> zero_points;
 +  int64_t quantization_dimension = -1, storage_max = 0, storage_min = 0;
 +  Type storage_type, expressed_type;
@@ -71,15 +71,21 @@ index 08d5f49c8..5ca2f9527 100644
 +
 +  auto is_signed = storage_type.cast<mlir::IntegerType>().isSigned();
 +
-+  return mlir::quant::UniformQuantizedType::get(
-+      is_signed, storage_type, expressed_type, scales[0], zero_points[0],
-+      storage_min, storage_max);
++  if (quantization_dimension != -1) {
++    return mlir::quant::UniformQuantizedPerAxisType::get(
++        is_signed, storage_type, expressed_type, scales, zero_points,
++        quantization_dimension, storage_min, storage_max);
++  } else {
++    return mlir::quant::UniformQuantizedType::get(
++        is_signed, storage_type, expressed_type, scales[0], zero_points[0],
++        storage_min, storage_max);
++  }
 +}
 +
  StatusOr<mlir::Operation*> HloFunctionImporter::ImportInstructionImpl(
      const HloInstruction* instruction,
      const llvm::SmallVectorImpl<mlir::Value>& operands,
-@@ -933,6 +991,25 @@ StatusOr<mlir::Operation*> HloFunctionImporter::ImportInstructionImpl(
+@@ -933,6 +997,25 @@ StatusOr<mlir::Operation*> HloFunctionImporter::ImportInstructionImpl(
                  "Couldn't parse backend config into a dictionary attribute");
  
            attributes.push_back(builder_->getNamedAttr("backend_config", attr));
