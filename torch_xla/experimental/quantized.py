@@ -22,7 +22,7 @@ def xla_quantize_per_tensor(input: torch.Tensor,
 
   result = torch_xla._XLAC._xla_quantize_per_tensor(input, scale_list,
                                                     zero_point_list, quant_min,
-                                                    quant_max, dtype)
+                                                    quant_max, dtype, axis)
   return result
 
 
@@ -46,5 +46,5 @@ def xla_dequantize_per_tensor(input: torch.Tensor,
   result = torch_xla._XLAC._xla_dequantize_per_tensor(input, scale_list,
                                                       zero_point_list,
                                                       quant_min, quant_max,
-                                                      dtype)
+                                                      dtype, axis)
   return result

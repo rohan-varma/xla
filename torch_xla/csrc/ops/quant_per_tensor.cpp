@@ -29,7 +29,8 @@ QuantizePerTensor::QuantizePerTensor(const torch::lazy::Value& input,
                                      const std::vector<float>& scale,
                                      const std::vector<float>& zero_point,
                                      int quant_min, int quant_max,
-                                     const std::string& dtype)
+                                     const std::string& dtype,
+                                     int axis)
     : XlaNode(
           xla_quantize_per_tensor, {input},
           GetXlaShape(input) /* fix when quant type is added to HLO */,
@@ -38,6 +39,7 @@ QuantizePerTensor::QuantizePerTensor(const torch::lazy::Value& input,
           torch::lazy::MHash(quant_min, quant_max, dtype)),
       quant_min_(quant_min),
       quant_max_(quant_max),
+      axis_(axis),
       dtype_(dtype),
       scale_(scale),
       zero_point_(zero_point) {}
@@ -45,7 +47,7 @@ QuantizePerTensor::QuantizePerTensor(const torch::lazy::Value& input,
 torch::lazy::NodePtr QuantizePerTensor::Clone(
     torch::lazy::OpList operands) const {
   return torch::lazy::MakeNode<QuantizePerTensor>(
-      operands.at(0), scale_, zero_point_, quant_min_, quant_max_, dtype_);
+      operands.at(0), scale_, zero_point_, quant_min_, quant_max_, dtype_, axis_);
 }
 
 // XlaOpVector QuantizePerTensor::Lower(LoweringContext* loctx) const {
@@ -96,9 +98,10 @@ XlaOpVector QuantizePerTensor::Lower(LoweringContext* loctx) const {
   const std::string opname = "stablehlo.uniform_quantize";
   std::stringstream ss;
   ss << "{";
-  // ss << "quantization_dimension=0,";
+    if (axis_ != -1) {
+    ss << "quantization_dimension=" << axis_ << ',';
+  }
   ss << "scale=" << SeralizeFloatVector(scale_, true) << ',';
-  // ss << "scale=" << "[2]" << ',';
   ss << "zero_point=" << SeralizeFloatVector(zero_point_) << ',';
   ss << "storage_type=" << _type_str_map.at(dtype_) << ',';
   ss << "expressed_type=" << "f32" << ','; /* should equal to the input scalar type*/

@@ -11,8 +11,8 @@ class QuantizePerTensor : public XlaNode {
                     const std::vector<float>& scale,
                     const std::vector<float>& zero_point, int quant_min,
                     int quant_max,
-                    // at::ScalarType dtype);
-                    const std::string& dtype);
+                    const std::string& dtype,
+                    int axis);
 
   std::string ToString() const override;
 
@@ -25,6 +25,7 @@ class QuantizePerTensor : public XlaNode {
  private:
   int quant_min_;
   int quant_max_;
+  int axis_;
   // at::ScalarType dtype_;
   std::string dtype_;
   std::vector<float> scale_;
