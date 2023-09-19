@@ -205,6 +205,17 @@ at::Tensor QuantizePerTensor(const at::Tensor& input,
   return bridge::AtenFromXlaTensor(std::move(result));
 }
 
+at::Tensor DeQuantizePerTensor(const at::Tensor& input,
+                             const std::vector<float>& scale_list,
+                             const std::vector<float>& zero_point_list,
+                             int quant_min, int quant_max,
+                             const std::string& dtype) {
+  auto result = tensor_methods::dequantize_per_tensor(
+      bridge::GetXlaTensor(input), scale_list, zero_point_list, quant_min,
+      quant_max, dtype);
+  return bridge::AtenFromXlaTensor(std::move(result));
+}
+
 std::pair<at::Tensor, std::shared_ptr<torch::lazy::Value>> ReduceScatter(
     const std::string& reduce_type, const at::Tensor& input,
     const std::shared_ptr<torch::lazy::Value>& token, double scale,
@@ -966,6 +977,18 @@ void InitXlaModuleBindings(py::module m) {
           {
             NoGilSection nogil;
             result = QuantizePerTensor(input, scale_list, zero_point_list,
+                                       quant_min, quant_max, dtype);
+          }
+          return result;
+        });
+    m.def("_xla_dequantize_per_tensor",
+        [](const at::Tensor& input, const std::vector<float>& scale_list,
+           const std::vector<float>& zero_point_list, int quant_min,
+           int quant_max, const std::string& dtype) -> at::Tensor {
+          at::Tensor result;
+          {
+            NoGilSection nogil;
+            result = DeQuantizePerTensor(input, scale_list, zero_point_list,
                                        quant_min, quant_max, dtype);
           }
           return result;
